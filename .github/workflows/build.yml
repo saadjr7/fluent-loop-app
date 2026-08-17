@@ -1,0 +1,63 @@
+name: Build Fluent Loop APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract ZIP
+        run: |
+          unzip -q fluent-loop-audio-test-capacitor.zip -d extracted
+
+          ROOT=$(find extracted -mindepth 1 -maxdepth 1 -type d | head -1)
+
+          if [ -n "$ROOT" ]; then
+            cp -a "$ROOT"/. ./
+          else
+            cp -a extracted/. ./
+          fi
+
+          echo "Project files:"
+          ls -la
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Add Android
+        run: npx cap add android
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Make Gradle executable
+        run: chmod +x android/gradlew
+
+      - name: Build APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: fluent-loop-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
