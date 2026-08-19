@@ -1,0 +1,6 @@
+{
+  "appId": "com.fluentloop.app",
+  "appName": "Fluent Loop",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}
