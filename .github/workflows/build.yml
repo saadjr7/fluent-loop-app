@@ -14,44 +14,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 1. فك ضغط ZIP في مكان مؤقت
-      - name: Extract ZIP to temp
+      # 1. فك الضغط وتنظيم المجلدات
+      - name: Extract ZIP to www
         run: |
           mkdir -p temp_extracted
           unzip -o fluent-loop-audio-test-capacitor.zip -d temp_extracted/
           
-          # إظهار هيكلية الملفات للتأكد من المسارات
-          find temp_extracted -maxdepth 2
-
-      # 2. تنظيم مجلد www وتصحيح المسارات تلقائياً
-      - name: Prepare and Correct www Folder
-        run: |
-          # مسح أي مجلد www قديم وإنشاء مجلد جديد ونظيف
           rm -rf www
           mkdir -p www
           
-          # البحث عن ملف index.html في الأجزاء التي تم فك ضغطها
           INDEX_PATH=$(find temp_extracted -name "index.html" | head -n 1)
-          
           if [ -n "$INDEX_PATH" ]; then
-            # استخراج المجلد الذي يحتوي على index.html
             SOURCE_DIR=$(dirname "$INDEX_PATH")
-            echo "Found index.html in: $SOURCE_DIR"
-            
-            # نسخ كافة المحتويات من المجلد الصحيح إلى www
             cp -r "$SOURCE_DIR"/* www/
-          else
-            echo "Warning: index.html not found in ZIP! Building blank app."
-            mkdir -p www
-            echo "<h1>Fluent Loop Build: Missing index.html</h1>" > www/index.html
           fi
-          
           rm -rf temp_extracted
-          
-          # التأكد من صحة المحتويات النهائية في www
-          ls -la www/
 
-      # 3. إعداد بيئات Node.js وجافا
+      # 2. حماية التطبيق وإظهار أي خطأ برمجي على الشاشة
+      - name: Inject Error Handler in index.html
+        run: |
+          ERROR_SCRIPT='<script>window.onerror=function(m,u,l){alert("Error: "+m+"\nLine: "+l);};window.onunhandledrejection=function(e){alert("Promise Error: "+e.reason);};</script>'
+          sed -i "s|<head>|<head>${ERROR_SCRIPT}|g" www/index.html || true
+
+      # 3. إعداد البيئات
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -63,7 +48,7 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # 4. تثبيت المكتبات ومزامنة Capacitor مع مجلد www
+      # 4. بناء المشروع
       - name: Install dependencies
         run: npm install
 
@@ -73,7 +58,6 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      # 5. إعطاء صلاحيات التشغيل وبناء الـ APK
       - name: Make Gradle executable
         run: chmod +x android/gradlew
 
@@ -81,7 +65,7 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
-      # 6. رفع ملف الـ APK النهائي للتنزيل
+      # 5. رفع الـ APK
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
