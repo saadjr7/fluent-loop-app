@@ -14,20 +14,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract ZIP
+      # فك ضغط ملف ZIP تلقائياً أينما وجد داخل المستودع
+      - name: Extract Project ZIP
         run: |
-          unzip -q fluent-loop-audio-test-capacitor.zip -d extracted
-
-          ROOT=$(find extracted -mindepth 1 -maxdepth 1 -type d | head -1)
-
-          if [ -n "$ROOT" ]; then
-            cp -a "$ROOT"/. ./
+          ZIP_FILE=$(find . -maxdepth 2 -name "*.zip" | head -n 1)
+          if [ -n "$ZIP_FILE" ]; then
+            echo "Found ZIP file: $ZIP_FILE"
+            unzip -o "$ZIP_FILE" -d temp_extracted/
+            cp -rn temp_extracted/*/* . 2>/dev/null || cp -rn temp_extracted/* . 2>/dev/null || true
+            rm -rf temp_extracted
           else
-            cp -a extracted/. ./
+            echo "No ZIP file found, proceeding with repository root files."
           fi
-
-          echo "Project files:"
-          ls -la
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -43,8 +41,8 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Add Android
-        run: npx cap add android
+      - name: Add Android Platform
+        run: npx cap add android || true
 
       - name: Sync Capacitor
         run: npx cap sync android
@@ -52,11 +50,11 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x android/gradlew
 
-      - name: Build APK
+      - name: Build Debug APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
-      - name: Upload APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: fluent-loop-debug-apk
