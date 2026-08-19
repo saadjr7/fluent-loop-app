@@ -16,7 +16,18 @@ jobs:
 
       - name: Extract ZIP
         run: |
-          unzip -q fluent-loop-audio-test-capacitor.zip -d extracted
+          # البحث عن ملف الـ zip في المستودع تلقائيًا
+          ZIP_FILE=$(find . -maxdepth 3 -iname "*fluent-loop*.zip" | head -1)
+
+          if [ -z "$ZIP_FILE" ]; then
+            echo "Error: Could not find the zip file!"
+            echo "Current files in repo:"
+            ls -la
+            exit 1
+          fi
+
+          echo "Found zip file: $ZIP_FILE"
+          unzip -q "$ZIP_FILE" -d extracted
 
           ROOT=$(find extracted -mindepth 1 -maxdepth 1 -type d | head -1)
 
