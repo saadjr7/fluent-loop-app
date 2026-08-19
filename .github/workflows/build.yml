@@ -14,30 +14,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 1. تفريغ الـ ZIP ونسخ كافة المحتويات إلى مجلد www
-      - name: Extract ZIP and Prepare www
+      # 1. استخراج محتويات ZIP مباشرة واستخراج مجلد www منها
+      - name: Extract ZIP structure
         run: |
-          mkdir -p temp_extracted
-          unzip -o fluent-loop-audio-test-capacitor.zip -d temp_extracted/
-          
-          # إنشاء مجلد www وتفريغه
-          rm -rf www
-          mkdir -p www
+          mkdir -p temp_zip
+          unzip -o fluent-loop-audio-test-capacitor.zip -d temp_zip/
 
-          # البحث عن ملف index.html ونسخ مجلده بالكامل إلى www
-          INDEX_PATH=$(find temp_extracted -name "index.html" | head -n 1)
-          if [ -n "$INDEX_PATH" ]; then
-            SOURCE_DIR=$(dirname "$INDEX_PATH")
-            echo "Found index.html in: $SOURCE_DIR"
-            cp -r "$SOURCE_DIR"/* www/
-          else
-            echo "Warning: index.html not found in ZIP!"
+          # العثور على مجلد www المباشر ونسخه للجذر
+          WWW_PATH=$(find temp_zip -type d -name "www" | head -n 1)
+          if [ -n "$WWW_PATH" ]; then
+            echo "Found www directory at: $WWW_PATH"
+            rm -rf www
+            cp -r "$WWW_PATH" .
           fi
 
-          # إظهار محتويات مجلد www للتأكد في السجلات
+          # نقل باقي الملفات الأساسية إن وجدت
+          cp -rn temp_zip/*/* . 2>/dev/null || cp -rn temp_zip/* . 2>/dev/null || true
+          rm -rf temp_zip
+
+          # التأكد من وجود index.html داخل مجلد www
           ls -la www/
 
-      # 2. إعداد بيئة العمل
+      # 2. إعداد بيئات التشغيل
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -49,7 +47,7 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # 3. تثبيت الحزم ومزامنة Capacitor
+      # 3. تثبيت المكتبات وتطابق المجلدات مع Capacitor
       - name: Install dependencies
         run: npm install
 
@@ -59,7 +57,7 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      # 4. بناء ملف APK
+      # 4. إعطاء صلاحيات وبناء الـ APK
       - name: Make Gradle executable
         run: chmod +x android/gradlew
 
@@ -67,7 +65,7 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
-      # 5. رفع ملف ה-APK النهائي
+      # 5. رفع ملف ה-APK للتنزيل
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
