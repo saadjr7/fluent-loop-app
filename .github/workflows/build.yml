@@ -14,28 +14,44 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 1. استخراج محتويات ZIP مباشرة واستخراج مجلد www منها
-      - name: Extract ZIP structure
+      # 1. فك ضغط ZIP في مكان مؤقت
+      - name: Extract ZIP to temp
         run: |
-          mkdir -p temp_zip
-          unzip -o fluent-loop-audio-test-capacitor.zip -d temp_zip/
+          mkdir -p temp_extracted
+          unzip -o fluent-loop-audio-test-capacitor.zip -d temp_extracted/
+          
+          # إظهار هيكلية الملفات للتأكد من المسارات
+          find temp_extracted -maxdepth 2
 
-          # العثور على مجلد www المباشر ونسخه للجذر
-          WWW_PATH=$(find temp_zip -type d -name "www" | head -n 1)
-          if [ -n "$WWW_PATH" ]; then
-            echo "Found www directory at: $WWW_PATH"
-            rm -rf www
-            cp -r "$WWW_PATH" .
+      # 2. تنظيم مجلد www وتصحيح المسارات تلقائياً
+      - name: Prepare and Correct www Folder
+        run: |
+          # مسح أي مجلد www قديم وإنشاء مجلد جديد ونظيف
+          rm -rf www
+          mkdir -p www
+          
+          # البحث عن ملف index.html في الأجزاء التي تم فك ضغطها
+          INDEX_PATH=$(find temp_extracted -name "index.html" | head -n 1)
+          
+          if [ -n "$INDEX_PATH" ]; then
+            # استخراج المجلد الذي يحتوي على index.html
+            SOURCE_DIR=$(dirname "$INDEX_PATH")
+            echo "Found index.html in: $SOURCE_DIR"
+            
+            # نسخ كافة المحتويات من المجلد الصحيح إلى www
+            cp -r "$SOURCE_DIR"/* www/
+          else
+            echo "Warning: index.html not found in ZIP! Building blank app."
+            mkdir -p www
+            echo "<h1>Fluent Loop Build: Missing index.html</h1>" > www/index.html
           fi
-
-          # نقل باقي الملفات الأساسية إن وجدت
-          cp -rn temp_zip/*/* . 2>/dev/null || cp -rn temp_zip/* . 2>/dev/null || true
-          rm -rf temp_zip
-
-          # التأكد من وجود index.html داخل مجلد www
+          
+          rm -rf temp_extracted
+          
+          # التأكد من صحة المحتويات النهائية في www
           ls -la www/
 
-      # 2. إعداد بيئات التشغيل
+      # 3. إعداد بيئات Node.js وجافا
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -47,7 +63,7 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # 3. تثبيت المكتبات وتطابق المجلدات مع Capacitor
+      # 4. تثبيت المكتبات ومزامنة Capacitor مع مجلد www
       - name: Install dependencies
         run: npm install
 
@@ -57,7 +73,7 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      # 4. إعطاء صلاحيات وبناء الـ APK
+      # 5. إعطاء صلاحيات التشغيل وبناء الـ APK
       - name: Make Gradle executable
         run: chmod +x android/gradlew
 
@@ -65,7 +81,7 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
-      # 5. رفع ملف ה-APK للتنزيل
+      # 6. رفع ملف الـ APK النهائي للتنزيل
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
