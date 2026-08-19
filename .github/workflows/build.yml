@@ -33,10 +33,10 @@ jobs:
         run: |
           if [ -d "twa" ]; then
             cd twa
-            bubblewrap build
+            bubblewrap build --skipGradleBuild=false --no-prompt
           else
             echo "Directory 'twa' not found. Running build from root..."
-            bubblewrap build
+            bubblewrap build --skipGradleBuild=false --no-prompt
           fi
 
       - name: Upload APK Artifact
