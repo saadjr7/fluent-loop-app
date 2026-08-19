@@ -14,60 +14,59 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract ZIP
+      # 1. فك ضغط ملف ZIP أينما كان
+      - name: Extract Project ZIP
         run: |
-          # البحث عن ملف الـ zip في المستودع تلقائيًا
-          ZIP_FILE=$(find . -maxdepth 3 -iname "*fluent-loop*.zip" | head -1)
-
-          if [ -z "$ZIP_FILE" ]; then
-            echo "Error: Could not find the zip file!"
-            echo "Current files in repo:"
-            ls -la
-            exit 1
+          ZIP_FILE=$(find . -maxdepth 2 -name "*.zip" | head -n 1)
+          if [ -n "$ZIP_FILE" ]; then
+            echo "Found ZIP file: $ZIP_FILE"
+            unzip -o "$ZIP_FILE" -d temp_extracted/
+            cp -rn temp_extracted/*/* . 2>/dev/null || cp -rn temp_extracted/* . 2>/dev/null || true
+            rm -rf temp_extracted
           fi
 
-          echo "Found zip file: $ZIP_FILE"
-          unzip -q "$ZIP_FILE" -d extracted
-
-          ROOT=$(find extracted -mindepth 1 -maxdepth 1 -type d | head -1)
-
-          if [ -n "$ROOT" ]; then
-            cp -a "$ROOT"/. ./
-          else
-            cp -a extracted/. ./
+      # 2. تنظيم ملفات الويب داخل مجلد www لتفادي الشاشة البيضاء
+      - name: Prepare Web Assets Folder
+        run: |
+          mkdir -p www
+          # نقل ملفات HTML و JS و CSS والأيقونات والميديا لداخل www إذا لم تكن فيه
+          if [ -f "index.html" ]; then
+            cp -r index.html *.js *.css *.json audio icons www/ 2>/dev/null || true
           fi
 
-          echo "Project files:"
-          ls -la
-
+      # 3. إعداد بيئة Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
+      # 4. إعداد بيئة Java
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
+      # 5. تثبيت الحزم ومزامنة Capacitor مع مجلد www
       - name: Install dependencies
         run: npm install
 
-      - name: Add Android
-        run: npx cap add android
+      - name: Add Android Platform
+        run: npx cap add android || true
 
       - name: Sync Capacitor
         run: npx cap sync android
 
+      # 6. إعطاء صلاحيات التشغيل وبناء الـ APK
       - name: Make Gradle executable
         run: chmod +x android/gradlew
 
-      - name: Build APK
+      - name: Build Debug APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
-      - name: Upload APK
+      # 7. رفع ملف الـ APK النهائي
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: fluent-loop-debug-apk
