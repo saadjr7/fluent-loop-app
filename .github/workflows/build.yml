@@ -1,10 +1,11 @@
-name: Build Fluent Loop APK
+name: Build Android APK (TWA / Bubblewrap)
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
+      - master
+  workflow_dispatch:
 
 jobs:
   build:
@@ -14,60 +15,34 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 1. فك الضغط وتنظيم المجلدات
-      - name: Extract ZIP to www
-        run: |
-          mkdir -p temp_extracted
-          unzip -o fluent-loop-audio-test-capacitor.zip -d temp_extracted/
-          
-          rm -rf www
-          mkdir -p www
-          
-          INDEX_PATH=$(find temp_extracted -name "index.html" | head -n 1)
-          if [ -n "$INDEX_PATH" ]; then
-            SOURCE_DIR=$(dirname "$INDEX_PATH")
-            cp -r "$SOURCE_DIR"/* www/
-          fi
-          rm -rf temp_extracted
-
-      # 2. حماية التطبيق وإظهار أي خطأ برمجي على الشاشة
-      - name: Inject Error Handler in index.html
-        run: |
-          ERROR_SCRIPT='<script>window.onerror=function(m,u,l){alert("Error: "+m+"\nLine: "+l);};window.onunhandledrejection=function(e){alert("Promise Error: "+e.reason);};</script>'
-          sed -i "s|<head>|<head>${ERROR_SCRIPT}|g" www/index.html || true
-
-      # 3. إعداد البيئات
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
 
-      - name: Setup Java
+      - name: Set up Java JDK
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: 17
+          distribution: 'temurin'
+          java-version: '17'
 
-      # 4. بناء المشروع
-      - name: Install dependencies
-        run: npm install
+      - name: Install Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli
 
-      - name: Add Android Platform
-        run: npx cap add android || true
+      - name: Build APK using Bubblewrap
+        run: |
+          if [ -d "twa" ]; then
+            cd twa
+            bubblewrap build
+          else
+            echo "Directory 'twa' not found. Running build from root..."
+            bubblewrap build
+          fi
 
-      - name: Sync Capacitor
-        run: npx cap sync android
-
-      - name: Make Gradle executable
-        run: chmod +x android/gradlew
-
-      - name: Build Debug APK
-        working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
-
-      # 5. رفع الـ APK
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: fluent-loop-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: app-release-apk
+          path: |
+            **/*.apk
+            **/*.aab
