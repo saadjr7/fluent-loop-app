@@ -32,9 +32,8 @@ jobs:
       - name: Install Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      - name: Build APK using Bubblewrap
+      - name: Setup Bubblewrap Configuration
         run: |
-          # 1. إعداد ملف إعدادات Bubblewrap لتفادي الأسئلة التفاعلية
           mkdir -p ~/.bubblewrap
           cat <<EOF > ~/.bubblewrap/config.json
           {
@@ -43,15 +42,12 @@ jobs:
           }
           EOF
 
-          # 2. الانتقال إلى مجلد twa والتحقق من وجود twa-manifest.json
-          if [ -d "twa" ]; then
-            cd twa
-            if [ -f "twa-manifest.template.json" ] && [ ! -f "twa-manifest.json" ]; then
-              cp twa-manifest.template.json twa-manifest.json
-            fi
+      - name: Build APK using Bubblewrap
+        working-directory: twa
+        run: |
+          if [ -f "twa-manifest.template.json" ] && [ ! -f "twa-manifest.json" ]; then
+            cp twa-manifest.template.json twa-manifest.json
           fi
-
-          # 3. تشغيل عملية البناء
           bubblewrap build
 
       - name: Upload APK Artifact
