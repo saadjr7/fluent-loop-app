@@ -44,15 +44,10 @@ jobs:
 
       - name: Build APK using Bubblewrap
         run: |
-          # العثور على المجلد الذي يحتوي على twa-manifest تلقائياً
-          MANIFEST_DIR=$(find . -name "twa-manifest.json" -o -name "twa-manifest.template.json" | head -n 1 | xargs dirname)
-
-          if [ -n "$MANIFEST_DIR" ]; then
-            cd "$MANIFEST_DIR"
-          fi
-
-          if [ -f "twa-manifest.template.json" ] && [ ! -f "twa-manifest.json" ]; then
-            cp twa-manifest.template.json twa-manifest.json
+          # التحقق من وجود manifest وإذا لم يوجد يتم إنشاؤه تلقائياً من رابط الـ PWA
+          if [ ! -f "twa-manifest.json" ]; then
+            echo "Manifest not found. Initializing Bubblewrap project..."
+            bubblewrap init --manifest="https://fluent-loop.netlify.app/manifest.json"
           fi
 
           bubblewrap build
