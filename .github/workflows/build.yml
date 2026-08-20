@@ -44,8 +44,11 @@ jobs:
 
       - name: Build APK using Bubblewrap
         run: |
-          if [ -d "twa" ]; then
-            cd twa
+          # العثور على المجلد الذي يحتوي على twa-manifest تلقائياً
+          MANIFEST_DIR=$(find . -name "twa-manifest.json" -o -name "twa-manifest.template.json" | head -n 1 | xargs dirname)
+
+          if [ -n "$MANIFEST_DIR" ]; then
+            cd "$MANIFEST_DIR"
           fi
 
           if [ -f "twa-manifest.template.json" ] && [ ! -f "twa-manifest.json" ]; then
