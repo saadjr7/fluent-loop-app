@@ -26,6 +26,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Install Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
@@ -33,11 +36,18 @@ jobs:
         run: |
           if [ -d "twa" ]; then
             cd twa
-            yes | bubblewrap build
-          else
-            echo "Directory 'twa' not found. Running build from root..."
-            yes | bubblewrap build
           fi
+          
+          # إنشاء ملف إعدادات Bubblewrap تلقائياً وتحديد مسارات JDK و Android SDK
+          mkdir -p ~/.bubblewrap
+          cat <<EOF > ~/.bubblewrap/config.json
+          {
+            "jdkPath": "${JAVA_HOME}",
+            "androidSdkPath": "${ANDROID_HOME}"
+          }
+          EOF
+
+          bubblewrap build
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
