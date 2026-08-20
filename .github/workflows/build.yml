@@ -43,11 +43,15 @@ jobs:
           EOF
 
       - name: Build APK using Bubblewrap
-        working-directory: twa
         run: |
+          if [ -d "twa" ]; then
+            cd twa
+          fi
+
           if [ -f "twa-manifest.template.json" ] && [ ! -f "twa-manifest.json" ]; then
             cp twa-manifest.template.json twa-manifest.json
           fi
+
           bubblewrap build
 
       - name: Upload APK Artifact
