@@ -44,10 +44,9 @@ jobs:
 
       - name: Build APK using Bubblewrap
         run: |
-          # التحقق من وجود manifest وإذا لم يوجد يتم إنشاؤه تلقائياً من رابط الـ PWA
           if [ ! -f "twa-manifest.json" ]; then
-            echo "Manifest not found. Initializing Bubblewrap project..."
-            bubblewrap init --manifest="https://fluent-loop.netlify.app/manifest.json"
+            echo "Initializing Bubblewrap project from web URL..."
+            bubblewrap init --manifest="https://fluent-loop.netlify.app/" --skipManifest
           fi
 
           bubblewrap build
