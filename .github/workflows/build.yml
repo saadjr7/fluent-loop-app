@@ -34,11 +34,7 @@ jobs:
 
       - name: Build APK using Bubblewrap
         run: |
-          if [ -d "twa" ]; then
-            cd twa
-          fi
-          
-          # إنشاء ملف إعدادات Bubblewrap تلقائياً وتحديد مسارات JDK و Android SDK
+          # 1. إعداد ملف إعدادات Bubblewrap لتفادي الأسئلة التفاعلية
           mkdir -p ~/.bubblewrap
           cat <<EOF > ~/.bubblewrap/config.json
           {
@@ -47,6 +43,15 @@ jobs:
           }
           EOF
 
+          # 2. الانتقال إلى مجلد twa والتحقق من وجود twa-manifest.json
+          if [ -d "twa" ]; then
+            cd twa
+            if [ -f "twa-manifest.template.json" ] && [ ! -f "twa-manifest.json" ]; then
+              cp twa-manifest.template.json twa-manifest.json
+            fi
+          fi
+
+          # 3. تشغيل عملية البناء
           bubblewrap build
 
       - name: Upload APK Artifact
