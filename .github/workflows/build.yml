@@ -42,11 +42,41 @@ jobs:
           }
           EOF
 
-      - name: Build APK using Bubblewrap
+      - name: Generate twa-manifest & Build APK
         run: |
           if [ ! -f "twa-manifest.json" ]; then
-            echo "Initializing Bubblewrap project from web URL..."
-            bubblewrap init --manifest="https://fluent-loop.netlify.app/" --skipManifest
+            echo "Creating local twa-manifest.json..."
+            cat <<EOF > twa-manifest.json
+          {
+            "packageId": "app.netlify.fluent_loop.twa",
+            "host": "fluent-loop.netlify.app",
+            "name": "Fluent Loop",
+            "launcherName": "FluentLoop",
+            "display": "standalone",
+            "themeColor": "#FFFFFF",
+            "navigationColor": "#000000",
+            "backgroundColor": "#FFFFFF",
+            "startUrl": "/",
+            "iconUrl": "https://fluent-loop.netlify.app/favicon.ico",
+            "maskableIconUrl": "https://fluent-loop.netlify.app/favicon.ico",
+            "appVersionName": "1.0.0",
+            "appVersionCode": 1,
+            "signingKey": {
+              "path": "./android.keystore",
+              "alias": "android"
+            },
+            "generatorApp": "bubblewrap-cli",
+            "webManifestUrl": "https://fluent-loop.netlify.app/",
+            "fallbackType": "customtabs",
+            "features": {},
+            "alphaDependencies": {
+              "enabled": false
+            },
+            "enableNotifications": false,
+            "isChromeOSOnly": false,
+            "minSdkVersion": 21
+          }
+          EOF
           fi
 
           bubblewrap build
